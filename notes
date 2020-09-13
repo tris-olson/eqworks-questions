@@ -1,0 +1,5 @@
+started working on question 3 - immediately noticed that the furthest points for each of the three remaining POIs are suspicious - the latitude/longitude provided do not match the locations listed in the file. it seems plausible that there are other suspicious points as well.
+
+for now I want to focus on playing around with solving questions 3 and 4a a little
+but tonight or tomorrow I need to clean up questions 1-3 so they're consistent, well commented, and clear.
+if possible it would be nice to make outputs flow cleanly from one question to the next wrt naming etc.

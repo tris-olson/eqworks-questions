@@ -1,1 +1,0 @@
-started working on question 3 - immediately noticed that the furthest points for each of the three remaining POIs are suspicious - the latitude/longitude provided do not match the locations listed in the file. it seems plausible that there are other suspicious points as well.
