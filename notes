@@ -3,3 +3,38 @@ started working on question 3 - immediately noticed that the furthest points for
 for now I want to focus on playing around with solving questions 3 and 4a a little
 but tonight or tomorrow I need to clean up questions 1-3 so they're consistent, well commented, and clear.
 if possible it would be nice to make outputs flow cleanly from one question to the next wrt naming etc.
+
+POI1
++-------+------------------+
+|summary|          distance|
++-------+------------------+
+|  count|              9356|
+|   mean|303.08939549834696|
+| stddev|418.72973146805134|
+|    min|         0.3495942|
+|    max|         11541.829|
++-------+------------------+
+
+POI3
++-------+-----------------+
+|summary|         distance|
++-------+-----------------+
+|  count|             9228|
+|   mean|  451.77785672626|
+| stddev|224.5055577157318|
+|    min|        0.8095297|
+|    max|        1500.4532|
++-------+-----------------+
+
+POI4
++-------+------------------+
+|summary|          distance|
++-------+------------------+
+|  count|               469|
+|   mean|502.84822352025566|
+| stddev|1488.1157551042654|
+|    min|         16.224401|
+|    max|          9365.336|
++-------+------------------+
+
+
