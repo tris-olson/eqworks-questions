@@ -10,6 +10,7 @@ end node: 36
 """
 
 import re
+import collections
 
 file = open("relations.txt")  
  
@@ -30,26 +31,57 @@ for line in file:
 file.close()
 
 
-markedList = [0] * len(taskIDs)
-# where 0 is unmarked, 1 is marked
-path = []
+def graphTraversal(goal, edges, seenList):
+    path = ['0']
+    if seenList[taskIDs.index(goal)] == 0:
+        seenList[taskIDs.index(goal)] = 1
+        path.append(goal)
+        for x in range(0, len(edges)):
+            if edges[x][1] == goal:
+                path.append(graphTraversal(edges[x][0], edges, seenList))
+    return path
+    
 
-def graphTraversal(graph, mList, node, end, maybeList):
-    if mList[taskIDs.index(node)] == 0:
-        mList[taskIDs.index(node)] = 1
-        checkedList = []
-        # this just pops everything above stream of anything else on the list, this is the issue
-        for x in range(0, len(relationsList)):
-            if relationsList[x][1] == node:
-                checkedList = checkedList + [relationsList[x][0], graphTraversal(graph, mList, relationsList[x][0], end, maybeList)]
-        for x in range(0, len(relationsList)):   
-            if relationsList[x][0] == node:
-                if relationsList[x][1] == end:
-                    checkedList = checkedList + [end, maybeList]
-                else:
-                    maybeList = maybeList + [relationsList[x][1]]
-                    checkedList = checkedList + [graphTraversal(graph, mList, relationsList[x][1], end, maybeList)]
-        return checkedList
+def flatten(l):
+    newList = []
+    for x in l:
+        if isinstance(l, collections.Iterable) and not isinstance(x, str):
+            newList.extend(flatten(x))
+        else:
+            newList.append(x)
+    return newList
+
+def removeZeros(l):
+    newList = []
+    for x in l:
+        if x != '0':
+            newList.append(x)
+    return newList
+
+def findPath(start, goal, nodes, edges):
+    markedList = [0] * len(nodes)
+    # where 0 is unmarked, 1 is marked
+    goalDependencies = graphTraversal(goal, edges, markedList)
+    goalDependencies = removeZeros(flatten(goalDependencies))
+    markedList = [0] * len(nodes)
+    startDependencies = graphTraversal(start, edges, markedList)
+    startDependencies = removeZeros(flatten(startDependencies))
+    
+    finalPath = []
+    for x in goalDependencies:
+        if x not in startDependencies:
+            finalPath.append(x)
+        if x == start:
+            finalPath.append(x)
+    
+    return finalPath
+
+    
+print(findPath('73', '36', taskIDs, relationsList))
+
+                
+
+"""
     
 def removeNone(l):
     newList = []
@@ -63,7 +95,4 @@ def flatten(l):
     for x in l:
         flat_list.append(x)
     return flat_list
-
-# testing but this probably won't work right away
-emptyList = []
-print(flatten(removeNone(graphTraversal(relationsList, markedList, '73', '36', emptyList))))
+"""
