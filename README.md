@@ -5,10 +5,11 @@ Where to find output for each question:
 1) cleaned-data
 2) assigned-data
 3) poi-stats, map.html
-4a) final-stats
-4b) pipeline-answer.txt
+4)a) final-stats
+b) pipeline-answer.txt
 
 Implementation notes:
+
 .csv files were slightly edited for ease of data processing, as follows
 -header of DataSample.csv manually edited to remove an unexpected space
 -header of POIList.csv manually edited to remove an unexpected space and to provide header names different from DataSample.csv
