@@ -1,7 +1,7 @@
 # eqworks_questions
 Solutions to technical interview questions for Data Engineer position at EQ Works.
 
-Where to find output for each question:
+Where to find output for each question after running submission.py:
 1) cleaned-data
 2) assigned-data
 3) poi-stats, map.html
