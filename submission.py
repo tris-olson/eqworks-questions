@@ -10,13 +10,12 @@ from geopy import distance
 import pyspark
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
-from pyspark.sql.functions import udf
 from pyspark.sql.types import FloatType
 
 spark = SparkSession.builder.master("local[*]") \
                     .getOrCreate()
     
-# to prevent error                
+# to prevent error when writing to file       
 spark.conf.set("spark.sql.crossJoin.enabled", "true")
 
 ##############
@@ -25,7 +24,6 @@ spark.conf.set("spark.sql.crossJoin.enabled", "true")
 
 df_data = spark.read.options(header='True',inferSchema='True',delimiter=',') \
                     .csv("/tmp/data/DataSample.csv")
-df_data.createOrReplaceTempView("data")
 
 # remove duplicate rows
 df_data = df_data.dropDuplicates(['TimeSt','Country','Province','City','Latitude','Longitude'])
@@ -46,7 +44,6 @@ df_data.write.option("header",True) \
 
 df_pois = spark.read.options(header='True',inferSchema='True',delimiter=',') \
                     .csv("/tmp/data/POIList.csv")
-df_pois.createOrReplaceTempView("pois")
 
 # remove duplicate POIs from the list of POIs
 # depending on what POIs represent, we might understand that
@@ -85,15 +82,17 @@ def density(count, radius):
     return count / (math.pi*(radius**2.0))
 udf_density = udf(density, FloatType())
 
-# aggregating desired statistics together in a single dataframe
-stats = df_data.groupBy('POIID').count()
-poi_stats = df_pois.join(stats, df_pois.POIID == stats.POIID).select(df_pois["*"],stats["count"])
-stats = df_data.groupBy('POIID').agg({'Distance': 'mean'})
-poi_stats = poi_stats.join(stats, poi_stats.POIID == stats.POIID).select(poi_stats["*"],stats["avg(Distance)"])
-stats = df_data.groupBy('POIID').agg({'Distance': 'stddev'})
-poi_stats = poi_stats.join(stats, poi_stats.POIID == stats.POIID).select(poi_stats["*"],stats["stddev(Distance)"])
-stats = df_data.groupBy('POIID').agg({'Distance': 'max'})
-poi_stats = poi_stats.join(stats, poi_stats.POIID == stats.POIID).select(poi_stats["*"],stats["max(Distance)"])
+# aggregating desired statistics
+pcount = df_data.groupBy('POIID').count()
+pmean = df_data.groupBy('POIID').agg({'Distance': 'mean'})
+pstddev = df_data.groupBy('POIID').agg({'Distance': 'stddev'})
+pmax = df_data.groupBy('POIID').agg({'Distance': 'max'})
+# loading stats into new dataframe
+poi_stats = df_pois.join(pcount, df_pois.POIID == pcount.POIID).select(df_pois["*"],pcount["count"])
+poi_stats = poi_stats.join(pmean, poi_stats.POIID == pmean.POIID).select(poi_stats["*"],pmean["avg(Distance)"])
+poi_stats = poi_stats.join(pstddev, poi_stats.POIID == pstddev.POIID).select(poi_stats["*"],pstddev["stddev(Distance)"])
+poi_stats = poi_stats.join(pmax, poi_stats.POIID == pmax.POIID).select(poi_stats["*"],pmax["max(Distance)"])
+# computing density column with statistics
 poi_stats = poi_stats.withColumn("Density", udf_density(poi_stats["count"], poi_stats["max(Distance)"]))
 
 # ouput for question 3, commented out line produces a single .csv file
@@ -101,15 +100,14 @@ poi_stats = poi_stats.withColumn("Density", udf_density(poi_stats["count"], poi_
 poi_stats.write.option("header",True) \
               .csv("/tmp/data/poi-stats")
 
-# read in poi statistics file produced earlier
+# read in POI statistics file produced earlier
 # reading in file speeds up execution compared to 
 # using the loaded data frame for some reason
 df_stats = spark.read.format("csv") \
                 .options(header='True',inferSchema='True',delimiter=',') \
                 .load("/tmp/data/poi-stats/*.csv")
-df_stats.createOrReplaceTempView("stats_data")
 
-# generate map
+# generate map centered slightly south of the center of Canada
 poi_map = folium.Map(location=[57.4, -96.466667], \
                zoom_start=3)
 
