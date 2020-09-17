@@ -1,3 +1,5 @@
+# this file contains q4a
+
 import math
 import pyspark
 from pyspark.sql import SparkSession
@@ -6,11 +8,14 @@ from pyspark.sql.types import FloatType
 
 spark = SparkSession.builder.master("local[*]") \
                     .getOrCreate()
+                    
+# to prevent error                
+spark.conf.set("spark.sql.crossJoin.enabled", "true")
 
 # read in poi statistics file produced earlier
 df_stats = spark.read.format("csv") \
                 .options(header='True',inferSchema='True',delimiter=',') \
-                .load("./poi-stats/*.csv")
+                .load("/tmp/data/poi-stats/*.csv")
 df_stats.createOrReplaceTempView("stats_data")
 
 # simple z-score normalization
@@ -44,9 +49,7 @@ df_stats = df_stats.withColumn("Popularity", udf_rescale(df_stats["pop"]))
 # remove columns used for computations
 df_stats = df_stats.drop("avg(Density)","stddev(Density)","pop")
 
-# output for question 4. commented out line writes a single file
-# df_stats.repartition(1).write.option("header",True).csv("final-stats", sep=',')
-df_stats.write.option("header",True) \
-              .csv("/tmp/data/final-stats")
-
-df_stats.show()
+# output for question 4, forced into a single file
+df_stats.repartition(1).write.option("header",True).csv("/tmp/data/final-stats", sep=',')
+#df_stats.write.option("header",True) \
+#              .csv("/tmp/data/final-stats")

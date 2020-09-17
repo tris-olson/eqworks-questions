@@ -1,3 +1,5 @@
+# this file contains q3
+
 import folium
 import pyspark
 from pyspark.sql import SparkSession
@@ -9,7 +11,7 @@ spark = SparkSession.builder.master("local[*]") \
 # read in poi statistics file produced earlier
 df_stats = spark.read.format("csv") \
                 .options(header='True',inferSchema='True',delimiter=',') \
-                .load("./poi-stats/*.csv")
+                .load("/tmp/data/poi-stats/*.csv")
 df_stats.createOrReplaceTempView("stats_data")
 
 # generate map
@@ -25,9 +27,5 @@ for f in df_stats.collect():
     color='crimson',
     fill=False,
     ).add_to(poi_map)
-    
+   
 poi_map.save('/tmp/data/map.html')
-
-# output for question 3
-#df_stats.show()
-#poi_map

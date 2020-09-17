@@ -3,6 +3,8 @@
 # - header of POIList.csv manually edited to remove an unexpected space
 #   and to provide header names different from DataSample.csv
 
+# this file contains q1, q2, q3
+
 import math
 import pyspark
 from pyspark.sql import SparkSession
@@ -13,8 +15,11 @@ from geopy import distance
 
 spark = SparkSession.builder.master("local[*]") \
                     .getOrCreate()
+    
+# to prevent error                
+spark.conf.set("spark.sql.crossJoin.enabled", "true")
 
-df_data = spark.read.option("header",True) \
+df_data = spark.read.options(header='True',inferSchema='True',delimiter=',') \
                     .csv("/tmp/data/DataSample.csv")
 df_data.createOrReplaceTempView("data")
 
@@ -70,7 +75,7 @@ distances = df_data.join(df_pois).withColumn('Distance', udf_dist(df_data.Latitu
 min_distances = distances.groupBy('_ID').min('Distance')
 # annotate distances with min distances, then filter out all non-min POIs
 # and delete unnecessary columns
-distances = distances.join(min_distances, distances._ID == min_distances._ID, 'inner') \
+distances = distances.join(min_distances, distances._ID == min_distances._ID) \
                      .select(distances["*"],min_distances["min(Distance)"])
 distances = distances.filter(distances["Distance"]==distances["min(Distance)"])
 df_data = distances.drop("min(Distance)", "POILatitude", "POILongitude")
@@ -95,6 +100,6 @@ poi_stats = poi_stats.join(stats, poi_stats.POIID == stats.POIID).select(poi_sta
 poi_stats = poi_stats.withColumn("Density", udf_density(poi_stats["count"], poi_stats["max(Distance)"]))
 
 # write to file, commented out line produces a single .csv file
-# poi_stats.repartition(1).write.option("header",True).csv("poi-stats", sep=',')
+# poi_stats.repartition(1).write.option("header",True).csv("/tmp/data/poi-stats", sep=',')
 poi_stats.write.option("header",True) \
               .csv("/tmp/data/poi-stats")

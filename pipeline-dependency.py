@@ -1,6 +1,4 @@
-# question 4b
-# start node: 73
-# end node: 36
+# this file contains q4b
 
 import re
 
@@ -16,6 +14,13 @@ taskIDs = []
 file = open("/tmp/data/task_ids.txt")
 for line in file:
     taskIDs = taskIDs + re.findall('[0-9]+', line)   
+file.close()
+
+# load in question
+question = []
+file = open("/tmp/data/question.txt")
+for line in file:
+    question = question + re.findall('[0-9]+', line)   
 file.close()
 
 # finds a topological sorting for the graph above the goal node
@@ -45,6 +50,9 @@ def find_path(start, goal, nodes, edges):
         if x == start:                  
             final_path.append(x)         # keep start node if it is a prereq of the goal
     return final_path
-
-    
-print(find_path('73', '36', taskIDs, edges_list))
+  
+# print answer to file
+finalString = ', '.join(find_path(question[0], question[1], taskIDs, edges_list))
+file = open("/tmp/data/pipeline-answer.txt","w")
+file.write(finalString)
+file.close() 
