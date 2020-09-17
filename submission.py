@@ -27,16 +27,8 @@ df_data = spark.read.options(header='True',inferSchema='True',delimiter=',') \
                     .csv("/tmp/data/DataSample.csv")
 df_data.createOrReplaceTempView("data")
 
-# clean data by collecting duplicates together
-# and only keeping the first entry
-df_data = spark.sql("SELECT * FROM data x \
-                    WHERE x._ID IN \
-                      (SELECT _ID FROM \
-                         (SELECT _ID, ROW_NUMBER() OVER \
-                            (PARTITION BY data.TimeSt, data.Country, data.Province, data.City, \
-                                data.Latitude, data.Longitude ORDER BY _ID) dup \
-                            FROM data) \
-                            WHERE dup < 2)")
+# remove duplicate rows
+df_data = df_data.dropDuplicates(['TimeSt','Country','Province','City','Latitude','Longitude'])
 
 # filter out implausible points via a box bounding Canada's extremes
 df_data = df_data.filter(df_data["Latitude"]>41.681389)
@@ -61,14 +53,7 @@ df_pois.createOrReplaceTempView("pois")
 # there could be multiple POIs in one location, and requests
 # should be distributed evenly among them, but here I will
 # assume that duplicates are just a mistake
-df_pois = spark.sql("SELECT * FROM pois x \
-                    WHERE x.POIID IN \
-                      (SELECT POIID FROM \
-                         (SELECT POIID, ROW_NUMBER() OVER \
-                            (PARTITION BY pois.POILatitude, \
-                            pois.POILongitude ORDER BY POIID) dup \
-                            FROM pois) \
-                            WHERE dup < 2)")
+df_pois = df_pois.dropDuplicates(['POILatitude','POILongitude'])
 
 # redefining geopy distance function so it's usable in dataframe
 def dist(a,b,x,y):
