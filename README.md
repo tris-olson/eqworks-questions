@@ -5,7 +5,8 @@ Where to find output for each question:
 1) cleaned-data
 2) assigned-data
 3) poi-stats, map.html
-4)a) final-stats
+4)
+a) final-stats
 b) pipeline-answer.txt
 
 Implementation notes:
