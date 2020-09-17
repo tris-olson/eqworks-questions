@@ -6,18 +6,22 @@
 import re
 import folium
 import math
+from geopy import distance
 import pyspark
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.functions import udf
 from pyspark.sql.types import FloatType
-from geopy import distance
 
 spark = SparkSession.builder.master("local[*]") \
                     .getOrCreate()
     
 # to prevent error                
 spark.conf.set("spark.sql.crossJoin.enabled", "true")
+
+##############
+# QUESTION 1 #
+##############
 
 df_data = spark.read.options(header='True',inferSchema='True',delimiter=',') \
                     .csv("/tmp/data/DataSample.csv")
@@ -43,6 +47,10 @@ df_data = df_data.filter(df_data["Longitude"]<-52.619444)
 # output for question 1
 df_data.write.option("header",True) \
              .csv("/tmp/data/cleaned-data")
+             
+##############
+# QUESTION 2 #
+##############
 
 df_pois = spark.read.options(header='True',inferSchema='True',delimiter=',') \
                     .csv("/tmp/data/POIList.csv")
@@ -62,7 +70,7 @@ df_pois = spark.sql("SELECT * FROM pois x \
                             FROM pois) \
                             WHERE dup < 2)")
 
-# redefining distance function so it's usable in dataframe
+# redefining geopy distance function so it's usable in dataframe
 def dist(a,b,x,y):
     return distance.distance((a,b),(x,y)).km
 udf_dist = udf(dist, FloatType())
@@ -83,6 +91,10 @@ df_data = distances.drop("min(Distance)", "POILatitude", "POILongitude")
 # output for question 2
 df_data.write.option("header",True) \
              .csv("/tmp/data/assigned-data")
+             
+##############
+# QUESTION 3 #
+##############
 
 def density(count, radius):
     return count / (math.pi*(radius**2.0))
@@ -99,7 +111,7 @@ stats = df_data.groupBy('POIID').agg({'Distance': 'max'})
 poi_stats = poi_stats.join(stats, poi_stats.POIID == stats.POIID).select(poi_stats["*"],stats["max(Distance)"])
 poi_stats = poi_stats.withColumn("Density", udf_density(poi_stats["count"], poi_stats["max(Distance)"]))
 
-# write to file, commented out line produces a single .csv file
+# ouput for question 3, commented out line produces a single .csv file
 # poi_stats.repartition(1).write.option("header",True).csv("/tmp/data/poi-stats", sep=',')
 poi_stats.write.option("header",True) \
               .csv("/tmp/data/poi-stats")
@@ -126,7 +138,12 @@ for f in df_stats.collect():
     fill=False,
     ).add_to(poi_map)
    
+# output for question 3
 poi_map.save('/tmp/data/map.html')
+
+###############
+# QUESTION 4A #
+###############
 
 # simple z-score normalization
 def standardize(x, mean, sd):
@@ -134,10 +151,10 @@ def standardize(x, mean, sd):
     return z
 udf_standardize = udf(standardize, FloatType())
 
-# rescales z-scores to [-10, 10] scale, with the extreme
-# ends of the scale locked at 3 standard deviations
-# this captures the majority of the data and means that
-# any point assigned -10 or 10 is a big outlier
+# rescales z-scores to [-10, 10] scale, with extreme ends
+# of the scale mapped to 3+ standard deviations from the mean
+# this gives better separation to the majority of the data and
+# implies that any point assigned -10 or 10 is a significant outlier
 def rescale(pop):
     r = -10.0+(((pop+3.0)*20.0)/(6.0))
     if r < -10.0:
@@ -159,10 +176,14 @@ df_stats = df_stats.withColumn("Popularity", udf_rescale(df_stats["pop"]))
 # remove columns used for computations
 df_stats = df_stats.drop("avg(Density)","stddev(Density)","pop")
 
-# output for question 4, forced into a single file
+# output for question 4a, forced into a single file
 df_stats.repartition(1).write.option("header",True).csv("/tmp/data/final-stats", sep=',')
 #df_stats.write.option("header",True) \
 #              .csv("/tmp/data/final-stats")
+
+###############
+# QUESTION 4B #
+###############
 
 # load in list of edges
 file = open("/tmp/data/relations.txt")  
@@ -213,7 +234,7 @@ def find_path(start, goal, nodes, edges):
             final_path.append(x)         # keep start node if it is a prereq of the goal
     return final_path
   
-# print answer to file
+# output for question 4b
 finalString = ', '.join(find_path(question[0], question[1], taskIDs, edges_list))
 file = open("/tmp/data/pipeline-answer.txt","w")
 file.write(finalString)
